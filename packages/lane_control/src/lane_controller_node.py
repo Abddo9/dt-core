@@ -208,7 +208,7 @@ class LaneControllerNode(DTROS):
             msg_wheels_cmd (:obj:`WheelsCmdStamped`): Executed wheel commands
         """
         self.wheels_cmd_executed = msg_wheels_cmd
-        rospy.loginfo("Wheels command executed")
+        rospy.loginfo("Wheels command executed omega : %s", ((msg_wheels_cmd.vel_right-msg_wheels_cmd.vel_left)/2*0.105))
 
     def publishCmd(self, car_cmd_msg):
         """Publishes a car command message.
@@ -244,8 +244,7 @@ class LaneControllerNode(DTROS):
             # We cap the error if it grows too large
             if np.abs(d_err) > self.params["~d_thres"]:
                 self.log("d_err too large, thresholding it!", "error")
-                d_err = np.sign(d_err) * self.params["~d_thres"]
-
+                d_err = np.sign(d_err) * self.params["~d_thres"] 
             wheels_cmd_exec = [self.wheels_cmd_executed.vel_left, self.wheels_cmd_executed.vel_right]
             if self.obstacle_stop_line_detected:
                 v, omega = self.controller.compute_control_action(

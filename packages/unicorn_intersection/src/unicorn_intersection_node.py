@@ -38,8 +38,8 @@ class UnicornIntersectionNode:
 
         self.standalone = rospy.get_param("~standalone")
         ## update Parameters timer
-        self.params_update = rospy.Timer(rospy.Duration.from_sec(1.0), self.updateParams)
-        self.sendPOs = rospy.Timer(rospy.Duration.from_sec(1.0), self.cbLanePose) #TODO: remvoe this when lane following pose is present
+        self.params_update = rospy.Timer(rospy.Duration.from_sec(0.005), self.updateParams)
+        self.sendPOs = rospy.Timer(rospy.Duration.from_sec(0.005), self.cbLanePose) #TODO: remvoe this when lane following pose is present
         self.activateinter = rospy.Timer(rospy.Duration.from_sec(90.0), self.gointer)
         
     def gointer(self, event):
@@ -103,11 +103,11 @@ class UnicornIntersectionNode:
 
         rospy.sleep(sleeptimes[turn_type])
 
-        self.forward_pose = False
+        
         rospy.set_param("~lane_controller/omega_ff", 0)
         rospy.set_param("~lane_controller/omega_max", 999)
         rospy.set_param("~lane_controller/omega_min", -999)
-        
+        self.forward_pose = False
         # Publish intersection done
         msg_done = BoolStamped()
         msg_done.data = True
