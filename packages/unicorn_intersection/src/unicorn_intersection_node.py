@@ -25,7 +25,7 @@ class UnicornIntersectionNode:
         self.sub_turn_type = rospy.Subscriber("~turn_id_and_type", TurnIDandType, self.cbTurnType)
         self.sub_fsm = rospy.Subscriber("~fsm_state", FSMState, self.cbFSMState)
         self.sub_int_go = rospy.Subscriber("~intersection_go", BoolStamped, self.cbIntersectionGo)
-        self.sub_lane_pose = rospy.Subscriber("~lane_pose_in", LanePose, self.cbLanePose)
+        #self.sub_lane_pose = rospy.Subscriber("~lane_pose_in", LanePose, self.cbLanePose) #TODO : uncomment this part
         self.sub_switch = rospy.Subscriber("~switch", BoolStamped, self.cbSwitch, queue_size=1)
 
         ## Publisher
@@ -39,13 +39,23 @@ class UnicornIntersectionNode:
         self.standalone = rospy.get_param("~standalone")
         ## update Parameters timer
         self.params_update = rospy.Timer(rospy.Duration.from_sec(1.0), self.updateParams)
-
+        self.sendPOs = rospy.Timer(rospy.Duration.from_sec(1.0), self.cbLanePose) #TODO: remvoe this when lane following pose is present
+        self.activateinter = rospy.Timer(rospy.Duration.from_sec(90.0), self.gointer)
         
-
-    def cbLanePose(self, msg):
+    def gointer(self, event):
+        rospy.loginfo("GO intersecrtion sent")
+        go = BoolStamped()
+        go.data = True
+        self.cbIntersectionGo(go)
+        
+    def cbLanePose(self, event): #TODO: change event to msg because it is a callback normal
         rospy.loginfo("We received a pose")
+        rospy.loginfo("omega setting other way is : %s", rospy.get_param("~lane_controller/omega_ff"))
+        sent = LanePose()
+        sent.d = 0
+        sent.phi = 0
         if self.forward_pose:
-            self.pub_lane_pose.publish(msg)
+            self.pub_lane_pose.publish(sent)
 
     def changeLFParams(self, params, reset_time):
         data = {"params": params, "time": reset_time}
@@ -86,18 +96,10 @@ class UnicornIntersectionNode:
         rospy.set_param("~lane_controller/omega_max", omega_maxs[turn_type])
         rospy.set_param("~lane_controller/omega_min", omega_mins[turn_type])
         # Waiting for LF to adapt to new params
-        rospy.sleep(1)
+        rospy.loginfo("omega setting now is : %s", rospy.get_param("~lane_controller/omega_ff"))
 
         rospy.loginfo("Starting intersection control - driving to " + str(turn_type))
         self.forward_pose = True
-
-        if self.standalone:
-            rospy.loginfo("[%s] foward true ", self.node_name)
-
-            msg_pose = LanePose()
-            msg_pose.d = 0
-            msg_pose.phi = 0
-            self.cbLanePose(msg_pose)
 
         rospy.sleep(sleeptimes[turn_type])
 
@@ -105,7 +107,7 @@ class UnicornIntersectionNode:
         rospy.set_param("~lane_controller/omega_ff", 0)
         rospy.set_param("~lane_controller/omega_max", 999)
         rospy.set_param("~lane_controller/omega_min", -999)
-
+        
         # Publish intersection done
         msg_done = BoolStamped()
         msg_done.data = True
@@ -124,15 +126,9 @@ class UnicornIntersectionNode:
 
         self.state = msg.state
 
-        self.standalone = rospy.get_param("~standalone")
-
-        if self.standalone and not self.forward_pose:
+        if self.standalone :
             rospy.loginfo("[%s] is running in the standalone setup", self.node_name)
             self.turn_type = 0
-            msg_go = BoolStamped()
-            msg_go.data = True
-            self.active = True
-            self.cbIntersectionGo(msg_go)
 
 
     def cbSwitch(self, switch_msg):
@@ -183,7 +179,7 @@ class UnicornIntersectionNode:
         self.omega_min_right = rospy.get_param("~omega_min_right")
 
         self.debug_dir = rospy.get_param("~debug_dir")
-        self.standalone = rospy.get_param("~standalone")
+        #self.standalone = rospy.get_param("~standalone")
 
     def setupParam(self, param_name, default_value):
         value = rospy.get_param(param_name, default_value)

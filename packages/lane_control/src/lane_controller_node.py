@@ -72,12 +72,13 @@ class LaneControllerNode(DTROS):
         self.params["~d_resolution"] = rospy.get_param("~d_resolution", None)
         self.params["~phi_resolution"] = rospy.get_param("~phi_resolution", None)
         self.params["~omega_ff"] = rospy.get_param("~omega_ff", None)
+        rospy.loginfo("receiving omega uodated on lane controller : %s", self.params["~omega_ff"])
         self.params["~verbose"] = rospy.get_param("~verbose", None)
         self.params["~stop_line_slowdown"] = rospy.get_param("~stop_line_slowdown", None)
 
         # Need to create controller object before updating parameters, otherwise it will fail
         self.controller = LaneController(self.params)
-        # self.updateParameters() # TODO: This needs be replaced by the new DTROS callback when it is implemented
+        #self.updateParameters() # TODO: This needs be replaced by the new DTROS callback when it is implemented
 
         # Initialize variables
         self.fsm_state = None
@@ -120,10 +121,32 @@ class LaneControllerNode(DTROS):
         self.sub_obstacle_stop_line = rospy.Subscriber(
             "~obstacle_distance_reading", StopLineReading, self.cbObstacleStopLineReading, queue_size=1
         )
-
+        
+        self.update_param = rospy.Timer(rospy.Duration.from_sec(1.0), self.updateParameters)
         self.log("Initialized!")
         rospy.loginfo("I was initilized")
-
+        
+    def updateParameters(self, event):
+        #self.params["~v_bar"] = DTParam("~v_bar", param_type=ParamType.FLOAT, min_value=0.0, max_value=5.0)
+        #self.params["~k_d"] = DTParam("~k_d", param_type=ParamType.FLOAT, min_value=-100.0, max_value=100.0)
+        #self.params["~k_theta"] = DTParam(
+        #    "~k_theta", param_type=ParamType.FLOAT, min_value=-100.0, max_value=100.0
+        #)
+        #self.params["~k_Id"] = DTParam("~k_Id", param_type=ParamType.FLOAT, min_value=-100.0, max_value=100.0)
+        #self.params["~k_Iphi"] = DTParam(
+        #    "~k_Iphi", param_type=ParamType.FLOAT, min_value=-100.0, max_value=100.0
+        #)
+        self.params["~theta_thres"] = rospy.get_param("~theta_thres", None)
+        self.params["~d_thres"] = rospy.get_param("~d_thres", None)
+        self.params["~d_offset"] = rospy.get_param("~d_offset", None)
+        self.params["~integral_bounds"] = rospy.get_param("~integral_bounds", None)
+        self.params["~d_resolution"] = rospy.get_param("~d_resolution", None)
+        self.params["~phi_resolution"] = rospy.get_param("~phi_resolution", None)
+        self.params["~omega_ff"] = rospy.get_param("~omega_ff", None)
+        rospy.loginfo("receiving omega uodated on lane controller : %s", self.params["~omega_ff"])
+        self.params["~verbose"] = rospy.get_param("~verbose", None)
+        self.params["~stop_line_slowdown"] = rospy.get_param("~stop_line_slowdown", None)
+        
     def cbObstacleStopLineReading(self, msg):
         """
         Callback storing the current obstacle distance, if detected.
